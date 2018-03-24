@@ -10,7 +10,7 @@ import Test.Spec.Runner           (RunnerEffects)
 
 import Prelude
 
-main :: Spec (RunnerEffects ()) Unit
+main ∷ Spec (RunnerEffects ()) Unit
 main = do
   let
     standard

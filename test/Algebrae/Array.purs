@@ -8,7 +8,7 @@ import Test.Spec.Runner           (RunnerEffects)
 
 import Prelude
 
-main :: Spec (RunnerEffects ()) Unit
+main ∷ Spec (RunnerEffects ()) Unit
 main = do
   describe "Array" do
     it "Empty" do
