@@ -1,5 +1,6 @@
 {
   "name": "purescript-data-algebrae",
+  "license": "MIT",
   "ignore": [
     "**/.*",
     "node_modules",
@@ -17,5 +18,9 @@
   "devDependencies": {
     "purescript-psci-support": "^3.0.0",
     "purescript-spec": "^2.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/i-am-tom/purescript-data-algebrae.git"
   }
 }
