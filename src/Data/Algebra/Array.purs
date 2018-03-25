@@ -1,11 +1,12 @@
 module Data.Algebra.Array where
 
-import Data.Array              ((!!), (:), deleteAt, drop, foldM, insertAt, snoc, uncons, unsnoc, updateAt)
-import Data.FoldableWithIndex  (foldrWithIndex)
-import Data.Function           (on)
-import Data.Generic.Rep        (class Generic)
-import Data.Generic.Rep.Show   (genericShow)
-import Data.Maybe              (Maybe(..), fromMaybe)
+import Data.Array             ((!!), (:), deleteAt, drop, foldM, insertAt, snoc, uncons, unsnoc, updateAt)
+import Data.Foldable          (foldl)
+import Data.FoldableWithIndex (foldrWithIndex)
+import Data.Function          (on)
+import Data.Generic.Rep       (class Generic)
+import Data.Generic.Rep.Show  (genericShow)
+import Data.Maybe             (Maybe(..), fromMaybe)
 import Prelude
 
 -- | An update algebra for incremental modification.
@@ -51,6 +52,26 @@ derive instance functorUpdate ∷ Functor Update
 
 instance showUpdate ∷ Show value ⇒ Show (Update value) where
   show = genericShow
+
+-- | Given an array and a predicate, produce the set of `DeleteAt` operations
+-- | to filter the array.
+filter
+  ∷ ∀ value
+  . (value → Boolean)
+  → Array value
+  → Array (Update value)
+filter predicate
+    = _.instructions
+  <<< foldl go { index: 0, instructions: [] }
+  where
+    go
+      ∷ { index ∷ Int, instructions ∷ Array (Update value) }
+      → value
+      → { index ∷ Int, instructions ∷ Array (Update value) }
+    go acc@{ index, instructions } element
+      = if predicate element
+          then acc { index        = acc.index + 1 }
+          else acc { instructions = snoc acc.instructions (DeleteAt index) }
 
 -- | Given an array, and an ordering function, produce the set of incremental
 -- | operations required to sort the array.

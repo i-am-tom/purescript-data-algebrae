@@ -1,7 +1,7 @@
 module Test.Algebrae.Array where
 
 import Data.Algebra.Array   as Array
-import Data.Array           (sort)
+import Data.Array           (filter, sort)
 import Data.Maybe           (Maybe(..))
 import Test.QuickCheck      ((===))
 import Test.Spec            (Spec, describe, it)
@@ -154,6 +154,16 @@ main = do
 
         Array.interpret [ 1, 2, 3 ] [ Array.Swap 2 1 ]
           `shouldEqual` Just [ 1, 3, 2 ]
+
+  describe "Filter" do
+    it "QuickCheck" do
+      quickCheck \(xs ∷ Array Int) (p ∷ Int → Boolean) →
+        let
+          expected = Just (filter p xs)
+          actual   = Array.interpret xs (Array.filter p xs)
+
+        in
+          expected === actual
 
   describe "Sort" do
     it "QuickCheck" do
