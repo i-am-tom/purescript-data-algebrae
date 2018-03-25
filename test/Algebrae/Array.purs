@@ -170,7 +170,17 @@ main = do
       quickCheck \(xs ∷ Array Int) →
         let
           expected = Just (sort xs)
-          actual   = Array.interpret xs (Array.sort id xs)
+          actual   = Array.interpret xs (Array.sort xs)
+
+        in
+          expected === actual
+
+    it "Stable" do
+      quickCheck \(xs ∷ Array Int) →
+        let
+          expected = Just (sort xs)
+          actual   = Array.interpret xs (Array.sort xs)
+            >>= \xs' → Array.interpret xs' (Array.sort xs')
 
         in
           expected === actual

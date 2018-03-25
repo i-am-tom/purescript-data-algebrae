@@ -69,15 +69,14 @@ filter predicate
           then acc { index        = acc.index + 1 }
           else acc { instructions = snoc acc.instructions (DeleteAt index) }
 
--- | Given an array, and an ordering function, produce the set of incremental
+-- | Given an array, and a comparison function, produce the set of incremental
 -- | operations required to sort the array.
-sort
-  ∷ ∀ value orderer anything
-  . Ord orderer
-  ⇒ (value → orderer)
+sortBy
+  ∷ ∀ value anything
+  . (value → value → Ordering)
   → Array value
   → Array (Update anything)
-sort prepare
+sortBy comparison
   = go 0
   where
     go offset input = fromMaybe [] do
@@ -102,9 +101,31 @@ sort prepare
               Just { index, best: next }
 
             Just prev →
-              case (compare `on` prepare) prev.best next of
+              case comparison prev.best next of
                 GT → Just { index, best: next }
                 _  → Just prev
+
+-- | Given an array, and an Ord-type-yielding function, produce the array of
+-- | incremental operations required to sort the array using that function.
+sortWith
+  ∷ ∀ value orderer anything
+  . Ord orderer
+  ⇒ (value → orderer)
+  → Array value
+  → Array (Update anything)
+sortWith prepare
+  = sortBy (compare `on` prepare)
+
+
+-- | Given an array of orderable elements, produce the array of incremental
+-- | operations to sort them.
+sort
+  ∷ ∀ value anything
+  . Ord value
+  ⇒ Array value
+  → Array (Update anything)
+sort
+  = sortBy compare
 
 -- | Perform a set of incremental updates on an array, maybe returning a
 -- | result.
