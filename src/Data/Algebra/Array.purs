@@ -56,18 +56,14 @@ instance showUpdate ∷ Show value ⇒ Show (Update value) where
 -- | Given an array and a predicate, produce the set of `DeleteAt` operations
 -- | to filter the array.
 filter
-  ∷ ∀ value
+  ∷ ∀ value anything
   . (value → Boolean)
   → Array value
-  → Array (Update value)
+  → Array (Update anything)
 filter predicate
     = _.instructions
   <<< foldl go { index: 0, instructions: [] }
   where
-    go
-      ∷ { index ∷ Int, instructions ∷ Array (Update value) }
-      → value
-      → { index ∷ Int, instructions ∷ Array (Update value) }
     go acc@{ index, instructions } element
       = if predicate element
           then acc { index        = acc.index + 1 }
@@ -76,18 +72,14 @@ filter predicate
 -- | Given an array, and an ordering function, produce the set of incremental
 -- | operations required to sort the array.
 sort
-  ∷ ∀ value orderer
+  ∷ ∀ value orderer anything
   . Ord orderer
   ⇒ (value → orderer)
   → Array value
-  → Array (Update value)
+  → Array (Update anything)
 sort prepare
   = go 0
   where
-    go
-      ∷ Int
-      → Array value
-      → Array (Update value)
     go offset input = fromMaybe [] do
       { head, tail }  ← uncons input
       { best, index } ← minimumIndex input
