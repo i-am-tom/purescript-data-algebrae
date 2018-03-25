@@ -1,9 +1,11 @@
 module Data.Algebra.Array where
 
-import Data.Array            (cons, deleteAt, foldM, insertAt, snoc, uncons, unsnoc, updateAt, (!!))
-import Data.Generic.Rep      (class Generic)
-import Data.Generic.Rep.Show (genericShow)
-import Data.Maybe            (Maybe(..))
+import Data.Array              ((!!), (:), deleteAt, drop, foldM, insertAt, snoc, uncons, unsnoc, updateAt)
+import Data.FoldableWithIndex  (foldrWithIndex)
+import Data.Function           (on)
+import Data.Generic.Rep        (class Generic)
+import Data.Generic.Rep.Show   (genericShow)
+import Data.Maybe              (Maybe(..), fromMaybe)
 import Prelude
 
 -- | An update algebra for incremental modification.
@@ -50,9 +52,54 @@ derive instance functorUpdate ∷ Functor Update
 instance showUpdate ∷ Show value ⇒ Show (Update value) where
   show = genericShow
 
+-- | Given an array, and an ordering function, produce the set of incremental
+-- | operations required to sort the array.
+sort
+  ∷ ∀ value orderer
+  . Ord orderer
+  ⇒ (value → orderer)
+  → Array value
+  → Array (Update value)
+sort prepare
+  = go 0
+  where
+    go
+      ∷ Int
+      → Array value
+      → Array (Update value)
+    go offset input = fromMaybe [] do
+      { head, tail }  ← uncons input
+      { best, index } ← minimumIndex input
+
+      updated ← updateAt index head input
+
+      let
+        rest = go (offset + 1) (drop 1 updated)
+        swap = Swap offset (index + offset)
+
+      pure if index == 0 then rest else swap : rest
+
+    minimumIndex
+      ∷ Array value
+      → Maybe { index ∷ Int, best ∷ value }
+    minimumIndex
+      = Nothing # foldrWithIndex \index next →
+          case _ of
+            Nothing →
+              Just { index, best: next }
+
+            Just prev →
+              case (compare `on` prepare) prev.best next of
+                GT → Just { index, best: next }
+                _  → Just prev
+
 -- | Perform a set of incremental updates on an array, maybe returning a
 -- | result.
-interpret ∷ ∀ value. Array value → Array (Update value) → Maybe (Array value)
+interpret
+  ∷ ∀ value
+  . Array value
+  → Array (Update value)
+  → Maybe (Array value)
 interpret
   = foldM \values →
       case _ of
@@ -61,7 +108,7 @@ interpret
         Shift                → map _.tail (uncons values)
         DeleteAt index       → deleteAt index values
         InsertAt index value → insertAt index value values
-        Unshift value        → Just (cons value values)
+        Unshift value        → Just (value : values)
         Push value           → Just (snoc values value)
 
         Move from to → do

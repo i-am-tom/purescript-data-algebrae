@@ -1,14 +1,16 @@
 module Test.Algebrae.Array where
 
-import Data.Algebra.Array         as Array
-import Data.Maybe                 (Maybe(..))
-import Test.Spec                  (Spec, describe, it)
-import Test.Spec.Assertions       (shouldEqual)
-import Test.Spec.Runner           (RunnerEffects)
+import Data.Algebra.Array   as Array
+import Data.Array           (sort)
+import Data.Maybe           (Maybe(..))
+import Test.QuickCheck      ((===))
+import Test.Spec            (Spec, describe, it)
+import Test.Spec.Assertions (shouldEqual)
+import Test.Spec.QuickCheck (QCRunnerEffects, quickCheck)
 
 import Prelude
 
-main ∷ Spec (RunnerEffects ()) Unit
+main ∷ Spec (QCRunnerEffects ()) Unit
 main = do
   describe "Array" do
     it "Empty" do
@@ -153,3 +155,12 @@ main = do
         Array.interpret [ 1, 2, 3 ] [ Array.Swap 2 1 ]
           `shouldEqual` Just [ 1, 3, 2 ]
 
+  describe "Sort" do
+    it "QuickCheck" do
+      quickCheck \(xs ∷ Array Int) →
+        let
+          expected = Just (sort xs)
+          actual   = Array.interpret xs (Array.sort id xs)
+
+        in
+          expected === actual

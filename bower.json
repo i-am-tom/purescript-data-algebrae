@@ -13,11 +13,14 @@
     "purescript-arrays": "^4.3.0",
     "purescript-functors": "^2.2.0",
     "purescript-generics-rep": "^5.4.0",
-    "purescript-maps": "^3.6.0"
+    "purescript-maps": "^3.6.0",
+    "purescript-spec-quickcheck": "^2.0.0",
+    "purescript-quickcheck": "^4.6.2"
   },
   "devDependencies": {
     "purescript-psci-support": "^3.0.0",
-    "purescript-spec": "^2.0.0"
+    "purescript-spec": "^2.0.0",
+    "purescript-debug": "^3.0.0"
   },
   "repository": {
     "type": "git",

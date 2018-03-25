@@ -6,11 +6,11 @@ import Data.Maybe                 (Maybe(..))
 import Data.Tuple.Nested          ((/\))
 import Test.Spec                  (Spec, describe, it)
 import Test.Spec.Assertions       (shouldEqual)
-import Test.Spec.Runner           (RunnerEffects)
+import Test.Spec.QuickCheck       (QCRunnerEffects)
 
 import Prelude
 
-main ∷ Spec (RunnerEffects ()) Unit
+main ∷ Spec (QCRunnerEffects ()) Unit
 main = do
   let
     standard
