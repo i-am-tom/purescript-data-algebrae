@@ -15,7 +15,8 @@
     "purescript-generics-rep": "^5.4.0",
     "purescript-maps": "^3.6.0",
     "purescript-spec-quickcheck": "^2.0.0",
-    "purescript-quickcheck": "^4.6.2"
+    "purescript-quickcheck": "^4.6.2",
+    "purescript-sets": "^3.1.0"
   },
   "devDependencies": {
     "purescript-psci-support": "^3.0.0",

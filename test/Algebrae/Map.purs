@@ -25,7 +25,7 @@ main = do
       Map.interpret standard [ Map.Empty ]
         `shouldEqual` Just M.empty
 
-    it "DeleteAt" do
+    it "Delete" do
       Map.interpret M.empty [ Map.Delete "missing" ]
         `shouldEqual` Just M.empty ∷ Maybe (M.Map String Int)
 
