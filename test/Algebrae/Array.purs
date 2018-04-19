@@ -1,186 +1,156 @@
 module Test.Algebrae.Array where
 
-import Data.Algebra.Array   as Array
-import Data.Array           (filter, sort)
-import Data.Maybe           (Maybe(..))
-import Test.QuickCheck      ((===))
-import Test.Spec            (Spec, describe, it)
-import Test.Spec.Assertions (shouldEqual)
-import Test.Spec.QuickCheck (QCRunnerEffects, quickCheck)
+import Data.Algebra.Array    as Array
+import Data.Array            (length, sortWith)
+import Data.Foldable         (sum)
+import Data.FunctorWithIndex (mapWithIndex)
+import Data.Maybe            (Maybe(..))
+import Data.Tuple            (Tuple(..), fst, snd)
+import Data.Tuple.Nested     (type (/\))
+import Test.QuickCheck       ((===))
+import Test.Spec             (Spec, describe, it)
+import Test.Spec.QuickCheck  (QCRunnerEffects, quickCheck)
 
 import Prelude
+
+-- | Given the size of the container, generate an invalid index.
+generateOutOfBounds ∷ Array Int → Int → Int
+generateOutOfBounds array i = if i < 0 then i else length array + i
 
 main ∷ Spec (QCRunnerEffects ()) Unit
 main = do
   describe "Array" do
-    it "Empty" do
-      Array.interpret [ 1, 2, 3 ] [ Array.Empty ]
-        `shouldEqual` Just []
+    describe "Empty" do
+      it "empties all arrays" $ quickCheck \(xs ∷ Array Int) →
+        Array.interpret xs [ Array.Empty ] === Just []
 
-    it "Push" do
-      Array.interpret [] [ Array.Push 0 ]
-        `shouldEqual` Just [ 0 ]
+    describe "Push" do
+      it "pushes to all lists" $ quickCheck \xs (x ∷ Int) →
+        Array.interpret xs [ Array.Push x ] === Just (xs <> [x])
 
-      Array.interpret [ 1, 2, 3 ] [ Array.Push 0 ]
-        `shouldEqual` Just [ 1, 2, 3, 0 ]
-
-    it "Unshift" do
-      Array.interpret [] [ Array.Unshift 0 ]
-        `shouldEqual` Just [ 0 ]
-
-      Array.interpret [ 1, 2, 3 ] [ Array.Unshift 0 ]
-        `shouldEqual` Just [ 0, 1, 2, 3 ]
+      it "produces non-empty lists" $ quickCheck \xs (x ∷ Int) →
+        map ((_ > 0) <<< length) (Array.interpret xs [ Array.Push x ])
+          === Just true
 
     describe "Pop" do
-      it "Empty" do
-        Array.interpret [] [ Array.Pop ]
-          `shouldEqual` Nothing ∷ Maybe (Array Int)
+      it "fails on empty list" $ quickCheck \(xs ∷ Array Int) →
+        Array.interpret xs [ Array.Empty, Array.Pop ] === Nothing
 
-      it "Non-empty" do
-        Array.interpret [ 1, 2, 3 ] [ Array.Pop ]
-          `shouldEqual` Just [ 1, 2 ]
+      it "pops from any non-empty list" $ quickCheck \xs (x ∷ Int) →
+        Array.interpret (xs <> [x]) [ Array.Pop ] === Just xs
+
+      it "undoes `Push`" $ quickCheck \xs (x ∷ Int) →
+        Array.interpret xs [ Array.Push x, Array.Pop ] === Just xs
+
+    describe "Unshift" do
+      it "unshifts to all lists" $ quickCheck \xs (x ∷ Int) →
+        Array.interpret xs [ Array.Unshift x ] === Just ([x] <> xs)
+
+      it "produces non-empty lists" $ quickCheck \xs (x ∷ Int) →
+        map ((_ > 0) <<< length) (Array.interpret xs [ Array.Unshift x ])
+          === Just true
 
     describe "Shift" do
-      it "Empty" do
-        Array.interpret [] [ Array.Shift ]
-          `shouldEqual` Nothing ∷ Maybe (Array Int)
+      it "fails on empty list" $ quickCheck \(xs ∷ Array Int) →
+        Array.interpret xs [ Array.Empty, Array.Shift ] === Nothing
 
-      it "Non-empty" do
-        Array.interpret [ 1, 2, 3 ] [ Array.Shift ]
-          `shouldEqual` Just [ 2, 3 ]
+      it "shifts from any non-empty list" $ quickCheck \xs (x ∷ Int) →
+        Array.interpret ([x] <> xs) [ Array.Shift ] === Just xs
+
+      it "undoes `Unshift`" $ quickCheck \xs (x ∷ Int) →
+        Array.interpret xs [ Array.Unshift x, Array.Shift ] === Just xs
 
     describe "DeleteAt" do
-      it "Out-of-bounds" do
-        Array.interpret [] [ Array.DeleteAt (-1) ]
-          `shouldEqual` Nothing ∷ Maybe (Array Int)
+      it "fails on out-of-bounds requests" $ quickCheck \ps (x ∷ Int) →
+        Array.interpret ps [ Array.DeleteAt (generateOutOfBounds ps x) ]
+          === Nothing
 
-      it "Within bounds" do
-        Array.interpret [ 1 ] [ Array.DeleteAt 0 ]
-          `shouldEqual` Just []
+      it "deletes at any valid index" $ quickCheck \ps (x ∷ Int) qs →
+        Array.interpret (ps <> [x] <> qs) [ Array.DeleteAt (length ps) ]
+          === Just (ps <> qs)
+
+      it "`Shift` === `DeleteAt 0`" $ quickCheck \(ps ∷ Array Int) →
+        Array.interpret ps [ Array.DeleteAt 0 ]
+          === Array.interpret ps [ Array.Shift ]
+
+      it "`Pop` === `DeleteAt len - 1`" $ quickCheck \(ps ∷ Array Int) →
+        Array.interpret ps [ Array.DeleteAt (length ps - 1) ]
+          === Array.interpret ps [ Array.Pop ]
 
     describe "Move" do
-      it "Out-of-bounds" do
-        Array.interpret [] [ Array.Move 2 4 ]
-          `shouldEqual` Nothing ∷ Maybe (Array Int)
+      it "fails on out-of-bounds indices" $ quickCheck \(ps ∷ Array Int) x →
+        Array.interpret ps [ Array.Move (generateOutOfBounds ps x) x ]
+          === Nothing
 
-        Array.interpret [ 1 ] [ Array.Move 0 3 ]
-          `shouldEqual` Nothing ∷ Maybe (Array Int)
+      it "moves with valid indices" $ quickCheck \ps (x ∷ Int) qs rs →
+        let
+          from = length ps
+          to   = from + length qs
+        in
+          Array.interpret (ps <> [x] <> qs <> rs) [ Array.Move from to ]
+            === Just (ps <> qs <> [x] <> rs)
 
-        Array.interpret [ 1 ] [ Array.Move 3 0 ]
-          `shouldEqual` Nothing ∷ Maybe (Array Int)
-
-      it "Same index" do
-        Array.interpret [ 1 ] [ Array.Move 0 0 ]
-          `shouldEqual` Just [ 1 ]
-
-        Array.interpret [ 1, 2, 3 ] [ Array.Move 0 0 ]
-          `shouldEqual` Just [ 1, 2, 3 ]
-
-        Array.interpret [ 1, 2, 3 ] [ Array.Move 2 2 ]
-          `shouldEqual` Just [ 1, 2, 3 ]
-
-        Array.interpret [ 1, 2, 3 ] [ Array.Move 1 1 ]
-          `shouldEqual` Just [ 1, 2, 3 ]
-
-      it "Forward move" do
-        Array.interpret [ 1, 2, 3 ] [ Array.Move 0 2 ]
-          `shouldEqual` Just [ 2, 3, 1 ]
-
-        Array.interpret [ 1, 2, 3 ] [ Array.Move 1 2 ]
-          `shouldEqual` Just [ 1, 3, 2 ]
-
-      it "Backward move" do
-        Array.interpret [ 1, 2, 3 ] [ Array.Move 2 0 ]
-          `shouldEqual` Just [ 3, 1, 2 ]
-
-        Array.interpret [ 1, 2, 3 ] [ Array.Move 2 1 ]
-          `shouldEqual` Just [ 1, 3, 2 ]
+      it "undoes with the inverse" $ quickCheck \ps (x ∷ Int) qs rs →
+        let
+          from = length ps
+          to   = from + length qs
+        in
+          Array.interpret (ps <> [x] <> qs <> rs)
+            [ Array.Move from to, Array.Move to from ]
+                === Just (ps <> [x] <> qs <> rs)
 
     describe "InsertAt" do
-      it "Out of index" do
-        Array.interpret [] [ Array.InsertAt (-1) 0 ]
-          `shouldEqual` Nothing
+      it "fails when out-of-bounds" $ quickCheck \ps (x ∷ Int) →
+        Array.interpret ps [ Array.InsertAt (generateOutOfBounds ps x) 0 ]
+          === Nothing
 
-        Array.interpret [] [ Array.InsertAt 1 0 ]
-          `shouldEqual` Nothing
-
-      it "Arbitrary position" do
-        Array.interpret [ 1, 2, 3 ] [ Array.InsertAt 0 0 ]
-          `shouldEqual` Just [ 0, 1, 2, 3 ]
-
-        Array.interpret [ 1, 2, 3 ] [ Array.InsertAt 1 0 ]
-          `shouldEqual` Just [ 1, 0, 2, 3 ]
-
-        Array.interpret [ 1, 2, 3 ] [ Array.InsertAt 2 0 ]
-          `shouldEqual` Just [ 1, 2, 0, 3 ]
-
-        Array.interpret [ 1, 2, 3 ] [ Array.InsertAt 3 0 ]
-          `shouldEqual` Just [ 1, 2, 3, 0 ]
+      it "inserts at a valid index" $ quickCheck \ps (x ∷ Int) qs →
+        Array.interpret (ps <> qs) [ Array.InsertAt (length ps) x ]
+          === Just (ps <> [x] <> qs)
 
     describe "Swap" do
-      it "Out-of-bounds" do
-        Array.interpret [] [ Array.Swap 2 4 ]
-          `shouldEqual` Nothing ∷ Maybe (Array Int)
+      it "fails when out-of-bounds" $ quickCheck \ps (x ∷ Int) →
+        Array.interpret ps [ Array.Swap 0 (generateOutOfBounds ps x) ]
+          === Nothing
 
-        Array.interpret [ 1 ] [ Array.Swap 0 3 ]
-          `shouldEqual` Nothing ∷ Maybe (Array Int)
+      it "swaps valid indices" $ quickCheck \ps (x ∷ Array Int) qs y rs →
+        Array.interpret (ps <> [x] <> qs <> [y] <> rs)
+          [ Array.Swap (length ps) (length ps + length qs + 1) ]
+            === Just (ps <> [y] <> qs <> [x] <> rs)
 
-        Array.interpret [ 1 ] [ Array.Swap 3 0 ]
-          `shouldEqual` Nothing ∷ Maybe (Array Int)
-
-      it "Same index" do
-        Array.interpret [ 1 ] [ Array.Swap 0 0 ]
-          `shouldEqual` Just [ 1 ]
-
-        Array.interpret [ 1, 2, 3 ] [ Array.Swap 0 0 ]
-          `shouldEqual` Just [ 1, 2, 3 ]
-
-        Array.interpret [ 1, 2, 3 ] [ Array.Swap 2 2 ]
-          `shouldEqual` Just [ 1, 2, 3 ]
-
-        Array.interpret [ 1, 2, 3 ] [ Array.Swap 1 1 ]
-          `shouldEqual` Just [ 1, 2, 3 ]
-
-      it "Forward move" do
-        Array.interpret [ 1, 2, 3 ] [ Array.Swap 0 2 ]
-          `shouldEqual` Just [ 3, 2, 1 ]
-
-        Array.interpret [ 1, 2, 3 ] [ Array.Swap 1 2 ]
-          `shouldEqual` Just [ 1, 3, 2 ]
-
-      it "Backward move" do
-        Array.interpret [ 1, 2, 3 ] [ Array.Swap 2 0 ]
-          `shouldEqual` Just [ 3, 2, 1 ]
-
-        Array.interpret [ 1, 2, 3 ] [ Array.Swap 2 1 ]
-          `shouldEqual` Just [ 1, 3, 2 ]
-
-  describe "Filter" do
-    it "QuickCheck" do
-      quickCheck \(xs ∷ Array Int) (p ∷ Int → Boolean) →
-        let
-          expected = Just (filter p xs)
-          actual   = Array.interpret xs (Array.filter p xs)
-
+      it "is reversible" $ quickCheck \ps (x ∷ Int) qs y rs →
+        let from = length ps
+            to   = length ps + length qs + 1
         in
-          expected === actual
+          Array.interpret (ps <> [x] <> qs <> [y] <> rs)
+            [ Array.Swap from to , Array.Swap from to ]
+                === Just (ps <> [x] <> qs <> [y] <> rs)
 
-  describe "Sort" do
-    it "QuickCheck" do
-      quickCheck \(xs ∷ Array Int) →
+    describe "Filter" do
+      it "drops trues" $ quickCheck \(xs ∷ Array (Array Unit /\ Array Unit)) →
         let
-          expected = Just (sort xs)
-          actual   = Array.interpret xs (Array.sort xs)
-
+          input = xs >>= \(Tuple xs ys) → join [ xs $> true, ys $> false ]
         in
-          expected === actual
+          length <$> (Array.interpret input (Array.filter id input))
+            === Just (sum (map (length <<< fst) xs))
 
-    it "Stable" do
-      quickCheck \(xs ∷ Array Int) →
+      it "drops falses" $ quickCheck \(xs ∷ Array (Array Unit /\ Array Unit)) →
         let
-          expected = Just (sort xs)
-          actual   = Array.interpret xs (Array.sort xs)
-            >>= \xs' → Array.interpret xs' (Array.sort xs')
-
+          input = xs >>= \(Tuple xs ys) → join [ xs $> true, ys $> false ]
         in
-          expected === actual
+          length <$> (Array.interpret input (Array.filter not input))
+            === Just (sum (map (length <<< snd) xs))
+
+    describe "Sort" do
+      it "sorts by a given index" $ quickCheck \(xs ∷ Array Int) →
+        let
+          withIndices = mapWithIndex Tuple xs
+          shuffled    = sortWith snd withIndices
+        in
+          map (map snd) (Array.interpret shuffled (Array.sortWith fst shuffled))
+            === Just xs
+
+      it "has a stable sort" $ quickCheck \(xs ∷ Array Int) (p ∷ Int → Int) →
+        (===) (Array.interpret xs (Array.sortWith p xs)) $
+          xs `Array.interpret` Array.sortWith p xs
+            >>= \ys → ys `Array.interpret` Array.sortWith p ys
