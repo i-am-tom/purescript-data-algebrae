@@ -1,6 +1,6 @@
 module Data.Algebra.Array where
 
-import Data.Array             ((!!), (:), deleteAt, drop, foldM, insertAt, snoc, uncons, unsnoc, updateAt)
+import Data.Array             ((!!), (:), deleteAt, drop, foldM, init, insertAt, snoc, tail, uncons, updateAt)
 import Data.Foldable          (foldl)
 import Data.FoldableWithIndex (foldrWithIndex)
 import Data.Function          (on)
@@ -138,8 +138,8 @@ interpret
   = foldM \values →
       case _ of
         Empty                → Just []
-        Pop                  → map _.init (unsnoc values)
-        Shift                → map _.tail (uncons values)
+        Pop                  → init values
+        Shift                → tail values
         DeleteAt index       → deleteAt index values
         InsertAt index value → insertAt index value values
         Unshift value        → Just (value : values)
