@@ -3,6 +3,7 @@ module Test.Algebrae.Array where
 import Data.Algebra.Array    as Array
 import Data.Array            (length, sortWith)
 import Data.Foldable         (sum)
+import Data.Function         (on)
 import Data.FunctorWithIndex (mapWithIndex)
 import Data.Maybe            (Maybe(..))
 import Data.Tuple            (Tuple(..), fst, snd)
@@ -118,12 +119,24 @@ main = do
           [ Array.Swap (length ps) (length ps + length qs + 1) ]
             === Just (ps <> [y] <> qs <> [x] <> rs)
 
+      it "can be replaced with moves" $ quickCheck \ps (x :: Int) qs y rs ->
+        let from = length ps
+            to   = length ps + length qs + 1
+            list = ps <> [x] <> qs <> [y] <> rs
+        in
+          on (===) (Array.interpret list)
+            [ Array.Swap from to ]
+
+            [ Array.Move from to
+            , Array.Move (to - 1) from
+            ]
+
       it "is reversible" $ quickCheck \ps (x ∷ Int) qs y rs →
         let from = length ps
             to   = length ps + length qs + 1
         in
           Array.interpret (ps <> [x] <> qs <> [y] <> rs)
-            [ Array.Swap from to , Array.Swap from to ]
+            [ Array.Swap from to, Array.Swap from to ]
                 === Just (ps <> [x] <> qs <> [y] <> rs)
 
     describe "Filter" do
