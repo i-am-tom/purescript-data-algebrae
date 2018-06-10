@@ -10,7 +10,7 @@ import Data.Tuple            (Tuple(..), fst, snd)
 import Data.Tuple.Nested     (type (/\))
 import Test.QuickCheck       ((===))
 import Test.Spec             (Spec, describe, it)
-import Test.Spec.QuickCheck  (QCRunnerEffects, quickCheck)
+import Test.Spec.QuickCheck  (quickCheck)
 
 import Prelude
 
@@ -18,7 +18,7 @@ import Prelude
 generateOutOfBounds ∷ Array Int → Int → Int
 generateOutOfBounds array i = if i < 0 then i else length array + i
 
-main ∷ Spec (QCRunnerEffects ()) Unit
+main ∷ Spec Unit
 main = do
   describe "Array" do
     describe "Empty" do
@@ -142,14 +142,14 @@ main = do
     describe "Filter" do
       it "drops trues" $ quickCheck \(xs ∷ Array (Array Unit /\ Array Unit)) →
         let
-          input = xs >>= \(Tuple xs ys) → join [ xs $> true, ys $> false ]
+          input = xs >>= \(Tuple ts fs) → join [ ts $> true, fs $> false ]
         in
-          length <$> (Array.interpret input (Array.filter id input))
+          length <$> (Array.interpret input (Array.filter identity input))
             === Just (sum (map (length <<< fst) xs))
 
       it "drops falses" $ quickCheck \(xs ∷ Array (Array Unit /\ Array Unit)) →
         let
-          input = xs >>= \(Tuple xs ys) → join [ xs $> true, ys $> false ]
+          input = xs >>= \(Tuple ts fs) → join [ ts $> true, fs $> false ]
         in
           length <$> (Array.interpret input (Array.filter not input))
             === Just (sum (map (length <<< snd) xs))

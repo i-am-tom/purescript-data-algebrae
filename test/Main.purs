@@ -1,7 +1,6 @@
 module Test.Main where
 
-import Control.Monad.Eff          (Eff)
-import Test.Spec.QuickCheck       (QCRunnerEffects)
+import Effect                     (Effect)
 import Test.Spec.Reporter.Console (consoleReporter)
 import Test.Spec.Runner           (run)
 
@@ -10,7 +9,7 @@ import Test.Algebrae.Map          as Map
 
 import Prelude                    (Unit, discard)
 
-main ∷ Eff (QCRunnerEffects ()) Unit
+main ∷ Effect Unit
 main = run [consoleReporter] do
   Array.main
   Map.main
