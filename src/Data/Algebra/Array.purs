@@ -1,6 +1,6 @@
 module Data.Algebra.Array where
 
-import Data.Array             ((!!), (:), deleteAt, drop, foldM, init, insertAt, snoc, tail, uncons, updateAt)
+import Data.Array             ((!!), (:), deleteAt, drop, foldRecM, init, insertAt, snoc, tail, uncons, updateAt)
 import Data.Foldable          (foldl)
 import Data.FoldableWithIndex (foldrWithIndex)
 import Data.Function          (on)
@@ -135,7 +135,7 @@ interpret
   → Array (Update value)
   → Maybe (Array value)
 interpret
-  = foldM \values →
+  = foldRecM \values →
       case _ of
         Empty                → Just []
         Pop                  → init values

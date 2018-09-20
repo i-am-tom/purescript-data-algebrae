@@ -1,6 +1,6 @@
 module Data.Algebra.Map where
 
-import Data.Array            (foldM)
+import Data.Array            (foldRecM)
 import Data.Generic.Rep      (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Map              (Map, delete, empty, insert, lookup)
@@ -45,7 +45,7 @@ interpret
   → Array (Update key value)
   → Maybe (Map key value)
 interpret
-  = foldM \values →
+  = foldRecM \values →
       case _ of
         Empty →
           Just empty
