@@ -1,6 +1,6 @@
 module Data.Algebra.Set where
 
-import Data.Array            (foldM)
+import Data.Array            (foldRecM)
 import Data.Generic.Rep      (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Set              (Set, delete, empty, insert)
@@ -36,7 +36,7 @@ interpret
   → Array (Update value)
   → Maybe (Set value)
 interpret
-  = foldM \values →
+  = foldRecM \values →
       case _ of
         Empty →
           Just empty
